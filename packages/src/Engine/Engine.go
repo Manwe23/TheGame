@@ -2,8 +2,10 @@
 package Engine
 
 import (
+	"BaseModule"
 	"EngineTypes"
 	"Module"
+	"TheMap"
 	"database/sql"
 	"fmt"
 	"github.com/coopernurse/gorp"
@@ -12,26 +14,13 @@ import (
 )
 
 type Engine struct {
-	modules         map[string]IModule
+	modules         map[string]BaseModule.BaseModule
 	requestsQueue   EngineTypes.MessageQueue
 	responsesQueue  EngineTypes.MessageQueue
 	inbox           chan EngineTypes.Message
 	taskContainer   EngineTypes.TaskContainer
 	lastMessageId   int
 	databaseHandler *gorp.DbMap
-}
-
-type IModule interface {
-	Start() bool
-	End()
-	Pause(bool)
-	Open()
-	Close()
-	GetState() int
-	GetInbox() *chan EngineTypes.Message
-	SetOutbox(*chan EngineTypes.Message)
-	SetErrorChan(*chan error)
-	SetDatabaseHandler(*gorp.DbMap)
 }
 
 func (e *Engine) run() {
@@ -47,33 +36,55 @@ func (e *Engine) run() {
 }
 
 func (e *Engine) loadModules() bool {
-	e.modules = make(map[string]IModule)
-	e.modules["Module"] = &Module.Module{}
-	e.modules["Module"].SetOutbox(&e.inbox)
-	e.modules["Module"].SetDatabaseHandler(e.databaseHandler)
-	if !e.modules["Module"].Start() {
+	e.modules = make(map[string]BaseModule.BaseModule)
+	var module BaseModule.BaseModule
+	module.InitB(&Module.Module{}, e.databaseHandler)
+	module.SetOutbox(&e.inbox)
+
+	if !module.Start() {
+
 		return false
 	}
+	e.modules["Module"] = module
+	fmt.Println("Module Module loaded.")
+
 	time.Sleep(1000 * time.Millisecond)
+
+	var mapa BaseModule.BaseModule
+	mapa.InitB(&TheMap.Mapa{}, e.databaseHandler)
+	mapa.SetOutbox(&e.inbox)
+
+	if !mapa.Start() {
+		return false
+	}
+	e.modules["Mapa"] = mapa
+	fmt.Println("Module Mapa loaded.")
+
+	time.Sleep(1000 * time.Millisecond)
+
 	return true
 }
 
 func (e *Engine) reciveMessages() {
-
+	var err error
 	for {
 		select {
 		case msg := <-e.inbox:
 			if msg.Request {
-				e.requestsQueue.Push(&msg)
+				err = e.requestsQueue.Push(&msg)
 			} else {
-				e.responsesQueue.Push(&msg)
+				err = e.responsesQueue.Push(&msg)
 			}
 
 		}
+		if err != nil {
+			fmt.Println("Engine error:", err)
+		}
+
 	}
 }
 
-func (e *Engine) sendMessage(m IModule, msg EngineTypes.Message) {
+func (e *Engine) sendMessage(m BaseModule.BaseModule, msg EngineTypes.Message) {
 
 	outbox := *m.GetInbox()
 	timeout := make(chan bool, 1)
@@ -100,8 +111,8 @@ func (e *Engine) taskGenerator() {
 		req := e.requestsQueue.Pop()
 
 		switch req.Action {
-		case "Echo":
-			e.echo(*req)
+		case "getCords":
+			e.getCords(*req)
 		default:
 			fmt.Println("Engine debug:Wrong action!")
 
@@ -145,7 +156,7 @@ func (e *Engine) Init() {
 func (e *Engine) initDb() {
 	// connect to db using standard Go database/sql API
 	// use whatever database/sql driver you wish
-	db, err := sql.Open("mymysql", "tcp:localhost:3306*mydb/myuser/mypassword")
+	db, err := sql.Open("mymysql", "tcp:localhost:3306*mapconfigurationdata/engine/enginepassword")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -167,11 +178,22 @@ func (e Engine) Start() {
 
 /////////// ACTION FUNCTIONS /////////////
 
-func (e *Engine) echo(msg EngineTypes.Message) {
+func (e *Engine) getCords(req EngineTypes.Message) {
 	task := EngineTypes.Task{} // create task structure
-	task.Run = func() {        // create functions that just replays the msg
-		msg.Request = false                       // becouse msg is a request, change it to response
-		e.sendMessage(e.modules[msg.Sender], msg) // send message to engine
+	task.Input = make(chan EngineTypes.Message, 3)
+	task.Run = func() { // create functions that just replays the msg
+		req.Request = false // becouse msg is a request, change it to response
+		var msg EngineTypes.Message
+		msg.Action = "getCords"
+		msg.Request = true
+		e.lastMessageId++
+		msg.MessageId = e.lastMessageId
+		e.sendMessage(e.modules["Mapa"], msg)
+		e.taskContainer.PushTask(task, true, msg.MessageId)
+		fmt.Println("Debug1")
+		res := <-task.Input
+		res.MessageId = req.MessageId
+		e.sendMessage(e.modules[req.Sender], res) // send message to engine
 	}
 	go task.Run() // run task in background
 }

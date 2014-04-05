@@ -3,10 +3,20 @@ package EngineTypes
 import (
 	"container/list"
 	"errors"
+	"github.com/coopernurse/gorp"
 )
 
+type DataBaseHandler *gorp.DbMap
+
+type IModule interface {
+	GenerateTask(Message)
+	InitModule(func(Message, Task, bool) (Message, bool), DataBaseHandler)
+}
+
+type StateMessage int
+
 const (
-	START = iota
+	START StateMessage = iota
 	END
 	PAUSE
 )
@@ -97,9 +107,9 @@ func (q *MessageQueue) Pop() *Message {
 	return old
 }
 
-func (q *MessageQueue) Push(msg *Message) {
+func (q *MessageQueue) Push(msg *Message) error {
 	if q.length == q.max {
-		return
+		return errors.New("MessageQueue is full!")
 	}
 	q.items[(q.head+q.length)%q.max] = msg
 	q.length++
@@ -110,6 +120,7 @@ func (q *MessageQueue) Push(msg *Message) {
 		default:
 		}
 	}
+	return nil
 }
 
 func (q MessageQueue) GetLength() int {

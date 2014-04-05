@@ -5,7 +5,6 @@ import (
 	"EngineTypes"
 	"database/sql"
 	"fmt"
-	"github.com/coopernurse/gorp"
 	_ "github.com/ziutek/mymysql/godrv"
 	"log"
 	"math/rand"
@@ -13,15 +12,8 @@ import (
 )
 
 type Mapa struct {
-	inbox           chan EngineTypes.Message
-	outbox          chan EngineTypes.Message
-	errors          chan error
-	control         chan int
-	pause           chan int
-	state           int
-	lastMessageId   int
-	taskContainer   EngineTypes.TaskContainer
-	databaseHandler *gorp.DbMap
+	databaseHandler EngineTypes.DataBaseHandler // Handler to database ORM ( at this moment we use gorp and mysql database )
+	sendMessage     func(EngineTypes.Message, EngineTypes.Task, bool) (EngineTypes.Message, bool)
 }
 
 type ConfigTable struct {
@@ -132,189 +124,37 @@ func (m Mapa) GetRandomCords() (long int, lat int) {
 	return
 }
 
-func (m *Mapa) run() {
-
-	rand.Seed(time.Now().Unix())
-	for {
-		select {
-		case c := <-m.control:
-			switch c {
-			case EngineTypes.START:
-				m.state = EngineTypes.START
-			case EngineTypes.END:
-				m.state = EngineTypes.END
-				return
-			case EngineTypes.PAUSE:
-				m.state = EngineTypes.PAUSE
-				c = <-m.control
-				m.control <- c
-				continue
-			default:
-			}
-		default:
-		}
-		var msg EngineTypes.Message
-		select {
-		case msg = <-m.inbox:
-			if msg.Request {
-				m.generateTask(msg)
-			} else {
-				task, err := m.taskContainer.GetTask(msg.MessageId)
-				if err != nil {
-					fmt.Println("Map debug:", err)
-					continue
-				}
-				fmt.Println("Map debug: task found")
-				task.Input <- msg
-			}
-			fmt.Println("Map recive msg:", msg)
-		default:
-			random := rand.Intn(5000)
-			time.Sleep(time.Duration(random) * time.Millisecond)
-			m.getCords()
-		}
-	}
-	fmt.Println("Map done.")
-}
-
-func (m *Mapa) generateTask(req EngineTypes.Message) {
-	switch req.Action {
-	case "GetCords":
-		fmt.Println("Map debug: get cordc action")
-		m.getResources(req)
-	case "Echo":
-		fmt.Println("Map debug: echo action")
-		m.echo(req)
-	default:
-		fmt.Println("Map debug: Wrong action!")
-	}
-}
-
-func (m *Mapa) Start() bool {
-	fmt.Println("Map start.")
-	m.inbox = make(chan EngineTypes.Message, 10)
-	m.control = make(chan int, 10)
-	m.pause = make(chan int)
-	m.state = EngineTypes.START
-	m.lastMessageId = 0
-	go m.run()
-	return true
-
-}
-
-func (m Mapa) End() {
-	m.control <- EngineTypes.END
-}
-
-func (m Mapa) Pause(on bool) {
-	if on {
-		m.control <- EngineTypes.PAUSE
-	} else {
-		m.control <- EngineTypes.START
-	}
-}
-
-func (m Mapa) Open() {
-
-}
-
-func (m Mapa) Close() {
-
-}
-
-func (m Mapa) GetState() int {
-	return 0
-}
-
-func (m Mapa) GetInbox() *chan EngineTypes.Message {
-	return &m.inbox
-}
-
-func (m *Mapa) SetOutbox(c *chan EngineTypes.Message) {
-	m.outbox = *c
-}
-
-func (m *Mapa) SetErrorChan(c *chan error) {
-	m.errors = *c
-}
-
-func (m *Mapa) SetDatabaseHandler(h *gorp.DbMap) {
+func (m *Mapa) InitModule(sender func(EngineTypes.Message, EngineTypes.Task, bool) (EngineTypes.Message, bool), h EngineTypes.DataBaseHandler) {
 	m.databaseHandler = h
+	m.sendMessage = sender
 }
 
-/////////// ACTION FUNCTIONS /////////////
-
-func (m *Mapa) getResources(req EngineTypes.Message) {
-	task := EngineTypes.Task{}
-	task.Kill = make(chan bool)
-	task.Input = make(chan EngineTypes.Message, 3)
-	task.Run = func() {
-		var msg EngineTypes.Message
-		msg.Action = "GetResources"
-		msg.MessageId = m.lastMessageId
-		msg.Sender = "Mapa"
-		msg.Request = true
-		m.lastMessageId++
-		fmt.Println("Map debug: push msg:", msg)
-		m.taskContainer.PushTask(task, true, msg.MessageId)
-		m.outbox <- msg
-		for {
-			select {
-			case <-task.Kill:
-				fmt.Println("Task killed!")
-				return
-			case msg = <-task.Input:
-				fmt.Println("Map debug: Task get msg:", msg)
-				msg.Request = false
-				msg.Action = "Response"
-				msg.MessageId = req.MessageId
-				m.outbox <- msg
-				return
-			}
-		}
-		defer close(task.Kill)
-		defer close(task.Input)
+/* Function binds request to proper function */
+func (m *Mapa) GenerateTask(req EngineTypes.Message) {
+	switch req.Action {
+	case "getCords":
+		m.getCords(req) // sample action1 bind
+	default:
+		fmt.Println("Map debug: Wrong action!") // if there is no proper action, report an error
 	}
-	go task.Run() // tutaj przydałaby się jakaś kontorla nad tym ile aktualnie mamy tasków w tle
 }
 
-func (m *Mapa) getCords() {
-	task := EngineTypes.Task{}
-	task.Kill = make(chan bool)
-	task.Input = make(chan EngineTypes.Message, 3)
+/***********MAP ACTIONS************/
+
+func (m *Mapa) getCords(req EngineTypes.Message) {
+	task := EngineTypes.Task{} // create task structure
 	task.Run = func() {
-
-		var msg EngineTypes.Message
-		msg.Action = "GetCords"
-		msg.MessageId = m.lastMessageId
-		msg.Sender = "Mapa"
-		msg.Request = true
-		m.taskContainer.PushTask(task, true, msg.MessageId)
-		m.lastMessageId++
-
-		fmt.Println("Map debug: push msg:", msg)
-		m.taskContainer.PushTask(task, true, msg.MessageId)
-		m.outbox <- msg
-		for {
-			select {
-			case <-task.Kill:
-				fmt.Println("Task killed!")
-				return
-			case msg = <-task.Input:
-				fmt.Println("Map debug: getCords finished with msg ", msg)
-				return
-			}
-		}
-		defer close(task.Kill)
-		defer close(task.Input)
+		var msg EngineTypes.Message // create functions that just replays the msg
+		msg.Request = false         // becouse msg is a request, change it to response
+		msg.MessageId = req.MessageId
+		msg.Data = make(map[string]EngineTypes.DataTypes) // initialize data map
+		attr1 := EngineTypes.DataTypes{}                  //
+		attr1.Type = "string"
+		long, lat := m.GetRandomCords()
+		attr1.String = fmt.Sprintf("[%d,%d]", long, lat)
+		msg.Data["Response"] = attr1
+		fmt.Println("Map debug: Send msg", msg)
+		m.sendMessage(msg, task, false) // send message to engine with no wait
 	}
-	go task.Run() // tutaj przydałaby się jakaś kontorla nad tym ile aktualnie mamy tasków w tle
-}
-
-func (m *Mapa) echo(msg EngineTypes.Message) {
-
-	msg.Request = false
-	msg.Action = "Response"
-	m.outbox <- msg
-
+	go task.Run() // run task in background
 }

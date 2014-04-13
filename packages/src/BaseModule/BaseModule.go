@@ -2,8 +2,8 @@
 package BaseModule
 
 import (
+	"DatabaseModule"
 	"EngineTypes"
-	"fmt"
 	"math/rand"
 	"time"
 )
@@ -58,8 +58,8 @@ func (m *BaseModule) run() {
 			} else {
 				task, err := m.taskContainer.GetTask(msg.MessageId) // get sleeping task, which waits for this response
 				if err != nil {                                     // check if there is an error
-					fmt.Println("BaseModule debug:", err) // if so, report it; better way to do this is to send it to engine
-					continue                              //abort any further actions
+					// if so, report it; better way to do this is to send it to engine
+					continue //abort any further actions
 				}
 				task.Input <- msg // wake up task by sending him response that he waiting for
 			}
@@ -70,8 +70,8 @@ func (m *BaseModule) run() {
 	// here you can put some staff to be done just before end of module
 }
 
-func (m *BaseModule) InitB(im EngineTypes.IModule, h EngineTypes.DataBaseHandler) {
-	m.Inbox = make(chan EngineTypes.Message, 100)       // create inbox channel of size 100 (feel free to change it)
+func (m *BaseModule) InitB(im EngineTypes.IModule, h *DatabaseModule.DatabaseModule) {
+	m.Inbox = make(chan EngineTypes.Message, 1000)      // create inbox channel of size 100 (feel free to change it)
 	m.control = make(chan EngineTypes.StateMessage, 10) // create control channel of size 10 (feel free to change it)
 	m.pause = make(chan int)                            // create pause channel
 	m.state = EngineTypes.START                         // set module state to START
@@ -140,7 +140,7 @@ func (m *BaseModule) SendMessage(msg EngineTypes.Message, task EngineTypes.Task,
 		msg.MessageId = m.lastMessageId // assign unique messageId to the request
 	}
 
-	if wait || msg.Request {
+	if wait && msg.Request {
 		m.taskContainer.PushTask(task, true, msg.MessageId)
 	}
 

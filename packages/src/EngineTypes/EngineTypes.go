@@ -1,16 +1,14 @@
 package EngineTypes
 
 import (
+	"DatabaseModule"
 	"container/list"
 	"errors"
-	"github.com/coopernurse/gorp"
 )
-
-type DataBaseHandler *gorp.DbMap
 
 type IModule interface {
 	GenerateTask(Message)
-	InitModule(func(Message, Task, bool) (Message, bool), DataBaseHandler)
+	InitModule(func(Message, Task, bool) (Message, bool), *DatabaseModule.DatabaseModule)
 }
 
 type StateMessage int
@@ -21,16 +19,28 @@ const (
 	PAUSE
 )
 
+const (
+	MODULE = iota
+	CLIENT_PROCESSOR
+	MAP
+)
+
+type MapField struct {
+	Code string
+	Desc map[string]string
+}
+
 type DataTypes struct {
-	Type   string
-	Int    int
-	String string
+	Type    string
+	Int     int
+	String  string
+	MapArea [][]MapField
 }
 
 type Message struct {
 	MessageId int
 	Priority  int
-	Sender    string
+	Sender    int
 	Request   bool
 	Action    string
 	Data      map[string]DataTypes
@@ -58,7 +68,7 @@ type TaskContainer struct {
 	Empty        bool
 }
 
-func (t *TaskContainer) PushTask(task Task, sleep bool, id int) {
+func (t *TaskContainer) PushTask(task Task, sleep bool, id int) int {
 	if t.waitingTasks == nil {
 		t.waitingTasks = make(map[int]Task)
 	}
@@ -68,10 +78,14 @@ func (t *TaskContainer) PushTask(task Task, sleep bool, id int) {
 	} else {
 		t.readyTasks.PushBack(task)
 	}
+	return len(t.waitingTasks)
 }
 
 func (t *TaskContainer) GetTask(id int) (Task, error) {
 	task, ok := t.waitingTasks[id]
+	if len(t.waitingTasks) == 0 {
+		return task, errors.New("Task container is empty!")
+	}
 	if !ok {
 		return task, errors.New("Missing task")
 	}

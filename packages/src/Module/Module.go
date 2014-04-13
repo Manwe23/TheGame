@@ -2,16 +2,17 @@
 package Module
 
 import (
+	"DatabaseModule"
 	"EngineTypes"
 	"fmt"
 )
 
 type Module struct {
-	databaseHandler EngineTypes.DataBaseHandler                                                   // Handler to database ORM ( at this moment we use gorp and mysql database )
+	databaseHandler *DatabaseModule.DatabaseModule                                                // Handler to database ORM ( at this moment we use gorp and mysql database )
 	sendMessage     func(EngineTypes.Message, EngineTypes.Task, bool) (EngineTypes.Message, bool) // function to send messages to engine
 }
 
-func (m *Module) InitModule(sender func(EngineTypes.Message, EngineTypes.Task, bool) (EngineTypes.Message, bool), h EngineTypes.DataBaseHandler) {
+func (m *Module) InitModule(sender func(EngineTypes.Message, EngineTypes.Task, bool) (EngineTypes.Message, bool), h *DatabaseModule.DatabaseModule) {
 	m.databaseHandler = h  // Seting database handler
 	m.sendMessage = sender //Seting sendMessage function
 }
@@ -59,15 +60,14 @@ func (m *Module) getCords() {
 	task.Run = func() {        // create functions that just replays the msg
 		defer close(task.Kill) // always remember to free the resources
 		defer close(task.Input)
-		var msg EngineTypes.Message               // create new request message
-		msg.Action = "getCords"                   // set request action
-		msg.Sender = "Module"                     // set sender.
-		msg.Request = true                        // becouse msg is a request, change it to response
-		res, ok := m.sendMessage(msg, task, true) // send message
+		var msg EngineTypes.Message             // create new request message
+		msg.Action = "getCords"                 // set request action
+		msg.Sender = EngineTypes.MODULE         // set sender.
+		msg.Request = true                      // becouse msg is a request, change it to response
+		_, ok := m.sendMessage(msg, task, true) // send message
 		if !ok {
 			return
 		}
-		fmt.Println("Module gets cords!:", res) // Print response
 
 	}
 	go task.Run() // run task in background
@@ -81,7 +81,7 @@ func (m *Module) action2(req EngineTypes.Message) { // functions gets request as
 		defer close(task.Input)
 		var msg EngineTypes.Message                       // create new request message
 		msg.Action = "Some action"                        // set request action
-		msg.Sender = "Module"                             // set sender.
+		msg.Sender = EngineTypes.MODULE                   // set sender.
 		msg.Request = true                                // set that this message is request
 		msg.Data = make(map[string]EngineTypes.DataTypes) // initialize data map
 		attr1 := EngineTypes.DataTypes{}                  //

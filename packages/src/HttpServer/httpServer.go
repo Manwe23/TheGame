@@ -147,10 +147,7 @@ func (s *HttpServer) gameHandler(w http.ResponseWriter, req *http.Request) {
 			conn.Close()
 			return
 		}
-		//log.Println(string(msg))
-		//time.Sleep(100 * time.Millisecond)
 		s.sendToEngine(eMsg)
-		//s.sendToUser(23, eMsg)
 
 	}
 }
@@ -171,7 +168,7 @@ func (s *HttpServer) Start(in chan EngineTypes.Message, out chan EngineTypes.Mes
 
 	log.Printf("Running on port %d\n", port)
 
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	addr := fmt.Sprintf("127.0.0.1:%d", port) //todo: put it into config file
 	// this call blocks -- the progam runs here forever
 
 	err := http.ListenAndServe(addr, nil)

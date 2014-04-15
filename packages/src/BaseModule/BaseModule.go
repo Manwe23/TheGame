@@ -71,8 +71,8 @@ func (m *BaseModule) run() {
 }
 
 func (m *BaseModule) InitB(im EngineTypes.IModule, h *DatabaseModule.DatabaseModule) {
-	m.Inbox = make(chan EngineTypes.Message, 1000)      // create inbox channel of size 100 (feel free to change it)
-	m.control = make(chan EngineTypes.StateMessage, 10) // create control channel of size 10 (feel free to change it)
+	m.Inbox = make(chan EngineTypes.Message, 1000)      // //todo: put it into config file
+	m.control = make(chan EngineTypes.StateMessage, 10) // //todo: put it into config file
 	m.pause = make(chan int)                            // create pause channel
 	m.state = EngineTypes.START                         // set module state to START
 	m.lastMessageId = 0                                 // init id of message to 0

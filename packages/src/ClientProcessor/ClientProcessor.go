@@ -40,13 +40,13 @@ func (e *EngineConnector) GenerateTask(req EngineTypes.Message) {
 
 func (c *ClientProcessor) Init(in chan EngineTypes.Message, out chan EngineTypes.Message, engineIn *chan EngineTypes.Message) {
 	c.requestsQueue = EngineTypes.MessageQueue{}
-	c.requestsQueue.Init(1000)
+	c.requestsQueue.Init(1000) //todo: put it into config file
 
 	c.setRequestsQueue = EngineTypes.MessageQueue{}
-	c.setRequestsQueue.Init(1000)
+	c.setRequestsQueue.Init(1000) //todo: put it into config file
 
 	c.cache = make(map[string]EngineTypes.Message)
-	c.Inbox = make(chan EngineTypes.Message, 1000)
+	c.Inbox = make(chan EngineTypes.Message, 1000) //todo: put it into config file
 	c.clientInbox = in
 	c.clientOutbox = out
 	c.engineInbox = *engineIn

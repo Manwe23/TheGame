@@ -7,51 +7,51 @@ import (
 	"github.com/coopernurse/gorp"
 )
 
-type DatabaseMenager struct {
+type DatabaseManager struct {
 	// monitor todo: Podpiąć monitor silnika do kontrolowania zapytan do bazy danych
 
 	clientsConnections  map[int]*DatabaseModule    //aliases to connection by client name
 	databaseConnections map[string]*DatabaseModule //aliases to connection by database name
 }
 
-func (menager *DatabaseMenager) Init() {
-	menager.clientsConnections = make(map[int]*DatabaseModule)
-	menager.databaseConnections = make(map[string]*DatabaseModule)
+func (manager *DatabaseManager) Init() {
+	manager.clientsConnections = make(map[int]*DatabaseModule)
+	manager.databaseConnections = make(map[string]*DatabaseModule)
 }
 
-func (menager *DatabaseMenager) Create(client int) *DatabaseModule {
+func (manager *DatabaseManager) Create(client int) *DatabaseModule {
 	var d DatabaseModule
-	d.init(client, menager)
+	d.init(client, manager)
 	return &d
 }
 
-func (menager *DatabaseMenager) addConnection(client int, database string, d *DatabaseModule) {
-	menager.clientsConnections[client] = d
-	menager.databaseConnections[database] = d
+func (manager *DatabaseManager) addConnection(client int, database string, d *DatabaseModule) {
+	manager.clientsConnections[client] = d
+	manager.databaseConnections[database] = d
 }
 
 /*DatabaseModule*/
 
 type DatabaseModule struct {
 	clientModule int
-	menager      *DatabaseMenager
+	manager      *DatabaseManager
 	connections  map[string]*Connection
 }
 
-func (d *DatabaseModule) init(client int, menager *DatabaseMenager) {
+func (d *DatabaseModule) init(client int, manager *DatabaseManager) {
 	d.clientModule = client
-	d.menager = menager
+	d.manager = manager
 	d.connections = make(map[string]*Connection)
 }
 
 func (d *DatabaseModule) NewConnection(database string, user string, pwd string) *Connection {
-	db, err := sql.Open("mymysql", fmt.Sprintf("tcp:localhost:3306*%s/%s/%s", database, user, pwd))
+	db, err := sql.Open("mymysql", fmt.Sprintf("tcp:localhost:3306*%s/%s/%s", database, user, pwd)) //todo: change it to use any database server
 	if err != nil {
 		fmt.Println(err)
 	}
 	var conn = Connection{}
 	conn.init(&gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{"InnoDB", "UTF8"}})
-	d.menager.addConnection(d.clientModule, database, d)
+	d.manager.addConnection(d.clientModule, database, d)
 	d.connections[database] = &conn
 	return &conn
 }

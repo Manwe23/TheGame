@@ -37,7 +37,7 @@ func (m *Mapa) load() {
 
 	var sqlQuery string
 
-	conn := m.databaseHandler.NewConnection("mapconfigurationdata", "engine", "enginepassword")
+	conn := m.databaseHandler.NewConnection("mapconfigurationdata", "engine", "enginepassword") //todo: put it into config file
 
 	var groups []Group
 	_, err := conn.Select(&groups, "SELECT tableName,code,name FROM groups LEFT JOIN description ON groups.idDescription=description.idDescription")

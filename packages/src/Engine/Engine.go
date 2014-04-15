@@ -21,7 +21,7 @@ type Engine struct {
 	clientOutbox    chan EngineTypes.Message
 	taskContainer   EngineTypes.TaskContainer
 	lastMessageId   int
-	databaseMenager DatabaseModule.DatabaseMenager
+	databaseManager DatabaseModule.DatabaseManager
 	clientProcessor ClientProcessor.ClientProcessor
 }
 
@@ -29,7 +29,7 @@ func (e *Engine) run() {
 
 	go e.reciveMessages()
 	go e.taskGenerator()
-	go e.taskMenager()
+	go e.taskManager()
 
 	for {
 		time.Sleep(1000 * time.Millisecond)
@@ -40,7 +40,7 @@ func (e *Engine) run() {
 func (e *Engine) loadModules() bool {
 	e.modules = make(map[int]BaseModule.BaseModule)
 	var module BaseModule.BaseModule
-	module.InitB(&Module.Module{}, e.databaseMenager.Create(EngineTypes.MODULE))
+	module.InitB(&Module.Module{}, e.databaseManager.Create(EngineTypes.MODULE))
 	module.SetOutbox(&e.inbox)
 
 	if !module.Start() {
@@ -53,7 +53,7 @@ func (e *Engine) loadModules() bool {
 	time.Sleep(1000 * time.Millisecond)
 
 	var mapa BaseModule.BaseModule
-	mapa.InitB(&TheMap.Mapa{}, e.databaseMenager.Create(EngineTypes.MAP))
+	mapa.InitB(&TheMap.Mapa{}, e.databaseManager.Create(EngineTypes.MAP))
 	mapa.SetOutbox(&e.inbox)
 
 	if !mapa.Start() {
@@ -126,7 +126,7 @@ func (e *Engine) taskGenerator() {
 
 }
 
-func (e *Engine) taskMenager() {
+func (e *Engine) taskManager() {
 
 	for {
 		if e.responsesQueue.Empty {
@@ -145,21 +145,21 @@ func (e *Engine) taskMenager() {
 }
 
 func (e *Engine) Init(in chan EngineTypes.Message, out chan EngineTypes.Message) {
-	e.inbox = make(chan EngineTypes.Message, 1000)
+	e.inbox = make(chan EngineTypes.Message, 1000) //todo: put it into config file
 
 	e.responsesQueue = EngineTypes.MessageQueue{}
-	e.responsesQueue.Init(1000)
+	e.responsesQueue.Init(1000) //todo: put it into config file
 
 	e.requestsQueue = EngineTypes.MessageQueue{}
-	e.requestsQueue.Init(1000)
+	e.requestsQueue.Init(1000) //todo: put it into config file
 
 	e.lastMessageId = 0
 
 	e.clientProcessor = ClientProcessor.ClientProcessor{}
 	e.clientProcessor.Init(in, out, &e.inbox)
 
-	e.databaseMenager = DatabaseModule.DatabaseMenager{}
-	e.databaseMenager.Init()
+	e.databaseManager = DatabaseModule.DatabaseManager{}
+	e.databaseManager.Init()
 }
 
 func (e Engine) Start(in chan EngineTypes.Message, out chan EngineTypes.Message) {
@@ -192,9 +192,9 @@ func (e *Engine) sendMessageToClient(msg EngineTypes.Message) {
 /////////// ACTION FUNCTIONS /////////////
 
 func (e *Engine) getCords(req EngineTypes.Message) {
-	task := EngineTypes.Task{} // create task structure
-	task.Input = make(chan EngineTypes.Message, 3)
-	task.Run = func() { // create functions that just replays the msg
+	task := EngineTypes.Task{}                     // create task structure
+	task.Input = make(chan EngineTypes.Message, 3) //todo: put it into config file
+	task.Run = func() {                            // create functions that just replays the msg
 		req.Request = false // becouse msg is a request, change it to response
 		var msg EngineTypes.Message
 		msg.Action = "getCords"

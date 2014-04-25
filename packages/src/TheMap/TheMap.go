@@ -2,6 +2,7 @@
 package TheMap
 
 import (
+	"Config"
 	"DatabaseModule"
 	"EngineTypes"
 	"fmt"
@@ -37,7 +38,7 @@ func (m *Mapa) load() {
 
 	var sqlQuery string
 
-	conn := m.databaseHandler.NewConnection("mapconfigurationdata", "engine", "enginepassword") //todo: put it into config file
+	conn := m.databaseHandler.NewConnection(Config.MapDatabaseName, Config.DatabaseUser, Config.DatabasePassword)
 
 	var groups []Group
 	_, err := conn.Select(&groups, "SELECT tableName,code,name FROM groups LEFT JOIN description ON groups.idDescription=description.idDescription")
@@ -130,12 +131,9 @@ func (m *Mapa) getCords(req EngineTypes.Message) {
 		var msg EngineTypes.Message // create functions that just replays the msg
 		msg.Request = false         // becouse msg is a request, change it to response
 		msg.MessageId = req.MessageId
-		msg.Data = make(map[string]EngineTypes.DataTypes) // initialize data map
-		attr1 := EngineTypes.DataTypes{}                  //
-		attr1.Type = "string"
+		msg.Data = make(map[string]interface{}) // initialize data map
 		long, lat := m.GetRandomCords()
-		attr1.String = fmt.Sprintf("[%d,%d]", long, lat)
-		msg.Data["Cords"] = attr1
+		msg.Data["Cords"] = fmt.Sprintf("[%d,%d]", long, lat)
 
 		m.sendMessage(msg, task, false) // send message to engine with no wait
 	}
@@ -148,14 +146,11 @@ func (m *Mapa) getArea(req EngineTypes.Message) {
 		var msg EngineTypes.Message
 		msg.Request = false
 		msg.MessageId = req.MessageId
-		msg.Data = make(map[string]EngineTypes.DataTypes)
+		msg.Data = make(map[string]interface{})
 
-		area := m.GetRandomArea(req.Data["width"].Int, req.Data["height"].Int)
-		result := EngineTypes.DataTypes{}
-		result.Type = "MapArea"
-		result.MapArea = area
+		area := m.GetRandomArea((req.Data["width"]).(int), (req.Data["height"]).(int))
 
-		msg.Data["Area"] = result
+		msg.Data["Area"] = area
 		m.sendMessage(msg, task, false)
 	}
 	go task.Run()

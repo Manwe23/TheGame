@@ -2,6 +2,7 @@
 package BaseModule
 
 import (
+	"Config"
 	"DatabaseModule"
 	"EngineTypes"
 	"math/rand"
@@ -71,13 +72,13 @@ func (m *BaseModule) run() {
 }
 
 func (m *BaseModule) InitB(im EngineTypes.IModule, h *DatabaseModule.DatabaseModule) {
-	m.Inbox = make(chan EngineTypes.Message, 1000)      // //todo: put it into config file
-	m.control = make(chan EngineTypes.StateMessage, 10) // //todo: put it into config file
-	m.pause = make(chan int)                            // create pause channel
-	m.state = EngineTypes.START                         // set module state to START
-	m.lastMessageId = 0                                 // init id of message to 0
-	m.extension = im                                    // specifies the behavior
-	m.extension.InitModule(m.SendMessage, h)            // initialize extension module
+	m.Inbox = make(chan EngineTypes.Message, Config.ModuleInboxSize)
+	m.control = make(chan EngineTypes.StateMessage, Config.ModuleControlChanSize)
+	m.pause = make(chan int)                 // create pause channel
+	m.state = EngineTypes.START              // set module state to START
+	m.lastMessageId = 0                      // init id of message to 0
+	m.extension = im                         // specifies the behavior
+	m.extension.InitModule(m.SendMessage, h) // initialize extension module
 }
 
 /* Functions that stats the module */
@@ -138,6 +139,9 @@ func (m *BaseModule) SendMessage(msg EngineTypes.Message, task EngineTypes.Task,
 	if msg.Request {
 		m.lastMessageId++               // increment message id.
 		msg.MessageId = m.lastMessageId // assign unique messageId to the request
+	}
+	if m.lastMessageId == 2147483647 {
+		m.lastMessageId = -2147483647
 	}
 
 	if wait && msg.Request {

@@ -26,16 +26,16 @@
 			<li class="field" ng-repeat="m in messages track by $index" title="{{m.code}}">
 				<ul>
 					<li>
-						Klimat : {{m.c}}
+						{{m.c}}
 					</li>
 					<li>
-						Zasoby : {{m.s}}
+						{{m.s}}
 					</li>
 					<li>
-						Uwarunkowanie terenu : {{m.h}}
+						{{m.h}}
 					</li>
 					<li>
-						Środowisko : {{m.e}}
+						{{m.e}}
 					</li>
 
 				</ul>
@@ -93,11 +93,17 @@
 				for (col in mapData) {
 					for (row in mapData[col]) {
 						//console.log(mapData[col][row].Code);
-						var f = {}
-						f.c = mapData[col][row].Desc.Klimat
-						f.s = mapData[col][row].Desc.Zasoby
-						f.h = mapData[col][row].Desc.Wysokość
-						f.e = mapData[col][row].Desc.Środowisko
+						var f = {};
+						var trans = [];
+						var id = 0 ;
+						for (i in mapData[col][row].Desc) {
+							trans[id] = i;
+							++id;
+						}
+						f.c = trans[0] + " : " + mapData[col][row].Desc[trans[0]];
+						f.s = trans[1] + " : " + mapData[col][row].Desc[trans[1]];
+						f.h = trans[2] + " : " + mapData[col][row].Desc[trans[2]];
+						f.e = trans[3] + " : " + mapData[col][row].Desc[trans[3]];
 						f.code = mapData[col][row].Code
 						$scope.messages.push(f);
 					}

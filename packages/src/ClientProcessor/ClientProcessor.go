@@ -3,6 +3,7 @@ package ClientProcessor
 
 import (
 	"BaseModule"
+	"Config"
 	"DatabaseModule"
 	"EngineTypes"
 	"fmt"
@@ -40,13 +41,13 @@ func (e *EngineConnector) GenerateTask(req EngineTypes.Message) {
 
 func (c *ClientProcessor) Init(in chan EngineTypes.Message, out chan EngineTypes.Message, engineIn *chan EngineTypes.Message) {
 	c.requestsQueue = EngineTypes.MessageQueue{}
-	c.requestsQueue.Init(1000) //todo: put it into config file
+	c.requestsQueue.Init(Config.ClientProcessorRequestsQueueSize)
 
 	c.setRequestsQueue = EngineTypes.MessageQueue{}
-	c.setRequestsQueue.Init(1000) //todo: put it into config file
+	c.setRequestsQueue.Init(Config.ClientProcessorRequestsQueueSize)
 
 	c.cache = make(map[string]EngineTypes.Message)
-	c.Inbox = make(chan EngineTypes.Message, 1000) //todo: put it into config file
+	c.Inbox = make(chan EngineTypes.Message, Config.ClientProcessorInboxSize)
 	c.clientInbox = in
 	c.clientOutbox = out
 	c.engineInbox = *engineIn

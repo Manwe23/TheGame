@@ -2,6 +2,7 @@
 package DatabaseModule
 
 import (
+	"Config"
 	"database/sql"
 	"fmt"
 	"github.com/coopernurse/gorp"
@@ -45,7 +46,7 @@ func (d *DatabaseModule) init(client int, manager *DatabaseManager) {
 }
 
 func (d *DatabaseModule) NewConnection(database string, user string, pwd string) *Connection {
-	db, err := sql.Open("mymysql", fmt.Sprintf("tcp:localhost:3306*%s/%s/%s", database, user, pwd)) //todo: change it to use any database server
+	db, err := sql.Open("mymysql", fmt.Sprintf("tcp:%s:%d*%s/%s/%s", Config.DatabaseHost, Config.DatabasePort, database, user, pwd))
 	if err != nil {
 		fmt.Println(err)
 	}

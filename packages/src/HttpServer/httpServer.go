@@ -2,6 +2,7 @@
 package HttpServer
 
 import (
+	"Config"
 	"EngineTypes"
 	"encoding/json"
 	"errors"
@@ -60,7 +61,7 @@ func (s *HttpServer) sendToEngine(msg EngineTypes.Message) {
 }
 
 func encodeMsg(msg EngineTypes.Message) []byte {
-	b, err := json.Marshal(msg.Data["Area"].MapArea)
+	b, err := json.Marshal(msg.Data["Area"])
 	if err != nil {
 		fmt.Println("error:", err)
 	}
@@ -133,13 +134,9 @@ func (s *HttpServer) gameHandler(w http.ResponseWriter, req *http.Request) {
 	eMsg.Action = "getArea"
 	eMsg.Request = true
 	eMsg.Sender = 23
-	eMsg.Data = make(map[string]EngineTypes.DataTypes)
-	width := EngineTypes.DataTypes{}
-	width.Int = 10
-	height := EngineTypes.DataTypes{}
-	height.Int = 13
-	eMsg.Data["width"] = width
-	eMsg.Data["height"] = height
+	eMsg.Data = make(map[string]interface{})
+	eMsg.Data["width"] = 10
+	eMsg.Data["height"] = 13
 	for {
 		// Blocks until a message is read
 		_, _, err := conn.ReadMessage()
@@ -154,8 +151,9 @@ func (s *HttpServer) gameHandler(w http.ResponseWriter, req *http.Request) {
 
 func (s *HttpServer) Start(in chan EngineTypes.Message, out chan EngineTypes.Message) {
 	// command line flags
-	port := 80
-	dir := "web/"
+	port := Config.HttpServerPort
+	dir := Config.HttpServerDir
+	fmt.Println("http server dir: ", dir)
 
 	s.Init(in, out)
 	go s.reciveMessagesFromEngine()

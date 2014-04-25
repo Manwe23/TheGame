@@ -4,6 +4,7 @@ package Engine
 import (
 	"BaseModule"
 	"ClientProcessor"
+	"Config"
 	"DatabaseModule"
 	"EngineTypes"
 	"Module"
@@ -145,13 +146,13 @@ func (e *Engine) taskManager() {
 }
 
 func (e *Engine) Init(in chan EngineTypes.Message, out chan EngineTypes.Message) {
-	e.inbox = make(chan EngineTypes.Message, 1000) //todo: put it into config file
+	e.inbox = make(chan EngineTypes.Message, Config.EngineInboxSize)
 
 	e.responsesQueue = EngineTypes.MessageQueue{}
-	e.responsesQueue.Init(1000) //todo: put it into config file
+	e.responsesQueue.Init(Config.EngineResponsesQueueSize)
 
 	e.requestsQueue = EngineTypes.MessageQueue{}
-	e.requestsQueue.Init(1000) //todo: put it into config file
+	e.requestsQueue.Init(Config.EngineRequestsQueueSize)
 
 	e.lastMessageId = 0
 
@@ -178,7 +179,7 @@ func (e *Engine) sendMessageToClient(msg EngineTypes.Message) {
 	outbox := e.clientProcessor.Inbox
 	timeout := make(chan bool, 1)
 	go func() {
-		time.Sleep(1 * time.Second)
+		time.Sleep(Config.EngineSendMessageTimeout * time.Second)
 		timeout <- true
 	}()
 
@@ -200,6 +201,9 @@ func (e *Engine) getCords(req EngineTypes.Message) {
 		msg.Action = "getCords"
 		msg.Request = true
 		e.lastMessageId++
+		if e.lastMessageId == 2147483647 {
+			e.lastMessageId = -2147483647
+		}
 		msg.MessageId = e.lastMessageId
 		e.sendMessage(e.modules[EngineTypes.MAP], msg)
 		e.taskContainer.PushTask(task, true, msg.MessageId)
@@ -222,6 +226,9 @@ func (e *Engine) getArea(req EngineTypes.Message) {
 
 		reqId := req.MessageId
 		e.lastMessageId++
+		if e.lastMessageId == 2147483647 {
+			e.lastMessageId = -2147483647
+		}
 		req.MessageId = e.lastMessageId
 		e.sendMessage(e.modules[EngineTypes.MAP], req)
 		e.taskContainer.PushTask(task, true, req.MessageId)

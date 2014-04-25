@@ -79,19 +79,13 @@ func (m *Module) action2(req EngineTypes.Message) { // functions gets request as
 	task.Run = func() {        //define Run function.
 		defer close(task.Kill) // always remember to free the resources
 		defer close(task.Input)
-		var msg EngineTypes.Message                       // create new request message
-		msg.Action = "Some action"                        // set request action
-		msg.Sender = EngineTypes.MODULE                   // set sender.
-		msg.Request = true                                // set that this message is request
-		msg.Data = make(map[string]EngineTypes.DataTypes) // initialize data map
-		attr1 := EngineTypes.DataTypes{}                  //
-		attr1.Type = "string"                             // Set some data
-		attr1.String = "string value1"                    // to the request message
-		msg.Data["atrr1"] = attr1                         //
-		attr2 := EngineTypes.DataTypes{}                  // In future there will be no need to
-		attr2.Type = "int"                                // specify type of data.
-		attr2.Int = 1                                     //
-		msg.Data["atrr2"] = attr2                         //
+		var msg EngineTypes.Message             // create new request message
+		msg.Action = "Some action"              // set request action
+		msg.Sender = EngineTypes.MODULE         // set sender.
+		msg.Request = true                      // set that this message is request
+		msg.Data = make(map[string]interface{}) // initialize data map
+		msg.Data["atrr1"] = "string value1"     //
+		msg.Data["atrr2"] = 1                   //
 		res, ok := m.sendMessage(msg, task, true)
 		if !ok {
 			return

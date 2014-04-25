@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Config"
 	"Engine"
 	"EngineTypes"
 	"HttpServer"
@@ -9,8 +10,8 @@ import (
 
 func main() {
 
-	engineClientInbox := make(chan EngineTypes.Message, 1000) //todo: put it into config file
-	clientEngineInbox := make(chan EngineTypes.Message, 1000) //todo: put it into config file
+	engineClientInbox := make(chan EngineTypes.Message, Config.EngineClientInboxSize)
+	clientEngineInbox := make(chan EngineTypes.Message, Config.ClientEngineInboxSize)
 
 	var engine Engine.Engine
 	engine.Start(engineClientInbox, clientEngineInbox)

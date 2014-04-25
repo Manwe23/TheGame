@@ -30,20 +30,13 @@ type MapField struct {
 	Desc map[string]string
 }
 
-type DataTypes struct {
-	Type    string
-	Int     int
-	String  string
-	MapArea [][]MapField
-}
-
 type Message struct {
 	MessageId int
 	Priority  int
 	Sender    int
 	Request   bool
 	Action    string
-	Data      map[string]DataTypes
+	Data      map[string]interface{}
 }
 
 type MessageQueue struct {

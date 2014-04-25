@@ -61,11 +61,21 @@ func (s *HttpServer) sendToEngine(msg EngineTypes.Message) {
 }
 
 func encodeMsg(msg EngineTypes.Message) []byte {
-	b, err := json.Marshal(msg.Data["Area"])
+	b, err := json.Marshal(msg)
 	if err != nil {
 		fmt.Println("error:", err)
 	}
 	return []byte(b)
+}
+
+func decodeMsg(rq []byte) (EngineTypes.Message, error) {
+	var eMsg EngineTypes.Message
+	err := json.Unmarshal(rq, &eMsg)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+
+	return eMsg, err
 }
 
 func setNewWebSocketConnection(w http.ResponseWriter, r *http.Request) (*websocket.Conn, string, error) {
@@ -108,6 +118,17 @@ func (s *HttpServer) reciveMessagesFromEngine() {
 	}
 }
 
+func (s *HttpServer) RequestsMenager(rq []byte, user int) {
+	eMsg, err := decodeMsg(rq)
+	if err != nil {
+
+		return
+	}
+	eMsg.Request = true
+	eMsg.Sender = user
+	s.sendToEngine(eMsg)
+}
+
 func (s *HttpServer) gameHandler(w http.ResponseWriter, req *http.Request) {
 	// Taken from gorilla's website
 
@@ -129,23 +150,15 @@ func (s *HttpServer) gameHandler(w http.ResponseWriter, req *http.Request) {
 	user.connection = conn
 	user.connectionId = newConnectionID
 	s.users[userID] = user
-	var eMsg EngineTypes.Message
 
-	eMsg.Action = "getArea"
-	eMsg.Request = true
-	eMsg.Sender = 23
-	eMsg.Data = make(map[string]interface{})
-	eMsg.Data["width"] = 10
-	eMsg.Data["height"] = 13
 	for {
 		// Blocks until a message is read
-		_, _, err := conn.ReadMessage()
+		_, rq, err := conn.ReadMessage()
 		if err != nil {
 			conn.Close()
 			return
 		}
-		s.sendToEngine(eMsg)
-
+		s.RequestsMenager(rq, user.id)
 	}
 }
 

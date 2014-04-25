@@ -147,6 +147,10 @@ func (c *ClientProcessor) getArea(req EngineTypes.Message) {
 		reqSender := req.Sender
 		req.Sender = EngineTypes.CLIENT_PROCESSOR
 		req.Action = "getArea"
+
+		req.Data["width"] = int(req.Data["width"].(float64))
+		req.Data["height"] = int(req.Data["height"].(float64))
+
 		res, _ := c.engineConnector.SendMessage(req, task, true)
 		res.Sender = reqSender
 

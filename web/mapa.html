@@ -42,8 +42,7 @@
 			</li>
 		</ul>
 	</div>
-	<input type="text" placeholder="type here" ng-model="msg" ng-enter="send()">
-	<button class="btn btn-primary" ng-click="send()">Send</button>
+	<button class="btn btn-primary" ng-click="generate()">Generate</button>
 
 <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.3/angular.min.js"></script>
 <script>
@@ -88,6 +87,7 @@
 			$scope.$apply(function(){
 			    $scope.messages = [];
 				var mapData = JSON.parse(e.data);
+				mapData = mapData.Data.Area
 				tmp = mapData;
 			    console.log(mapData)
 				for (col in mapData) {
@@ -113,13 +113,11 @@
 			});
 		};
 
-		$scope.send = function() {
+		$scope.generate = function() {
 		time = new Date();
-			for(i = 0 ; i < 1 ; ++i) {
-			conn.send($scope.msg);
-			$scope.msg = "";
-			//$scope.messages.push("SENDED");
-			}
+		rq = {Action:"getArea",Data:{width:10, height:13}};
+		conn.send(JSON.stringify(rq));
+		$scope.msg = "";
 		}
 	}]);
 </script>

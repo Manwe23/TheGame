@@ -7,6 +7,7 @@ import (
 	"Config"
 	"DatabaseModule"
 	"EngineTypes"
+	"Hero"
 	"Module"
 	"TheMap"
 	"fmt"
@@ -62,6 +63,18 @@ func (e *Engine) loadModules() bool {
 	}
 	e.modules[EngineTypes.MAP] = mapa
 	fmt.Println("Module Mapa loaded.")
+
+	time.Sleep(1000 * time.Millisecond)
+
+	var hero BaseModule.BaseModule
+	mapa.InitB(&Hero.HeroModule{}, e.databaseManager.Create(EngineTypes.HERO))
+	mapa.SetOutbox(&e.inbox)
+
+	if !hero.Start() {
+		return false
+	}
+	e.modules[EngineTypes.HERO] = hero
+	fmt.Println("Module Hero loaded.")
 
 	time.Sleep(1000 * time.Millisecond)
 

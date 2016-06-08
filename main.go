@@ -18,7 +18,7 @@ func main() {
 
 	var httpServer HttpServer.HttpServer
 	httpServer.Start(clientEngineInbox, engineClientInbox)
-
+  fmt.Printf("Jest super!!!\n")
 	//newLoad()
 	wait := make(chan bool)
 	select {
